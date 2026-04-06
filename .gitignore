@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environments
+.venv/
+.env
+.env.*
+!.env.example
+
+# Tooling
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# OS
+.DS_Store
+
+# Build
+dist/
+build/
+*.egg-info/
+
+# VSCode
+.vscode/
+
+# Docker
+*.log
+
+# Credentials
+credentials/

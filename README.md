@@ -1,153 +1,229 @@
-# Generative AI Project Template
+# GenAI Template
 
-A structured template for building robust generative AI applications, with modular organization and best practices built-in.
+Production-ready template for new GenAI client projects.
 
-![genai_project](https://github.com/honestsoul/generative_ai_project/blob/96dae125f58ede47f1bc3034790498f103903772/examples/genai_project.jpg)
-
-
-
-## 🌟 Features
-
-- Modular project structure for scalability
-- Pre-configured support for multiple LLM providers (Claude, GPT)
-- Built-in prompt engineering utilities
-- Rate limiting and token management
-- Robust error handling
-- Caching mechanism for API responses
-- Example implementations and notebooks
-
-## 📁 Project Structure
-
-```
-generative_ai_project/
-├── config/                  # Configuration directory
-│   ├── __init__.py
-│   ├── model_config.yaml    # Model-specific configurations
-│   ├── prompt_templates.yaml # Prompt templates
-│   └── logging_config.yaml  # Logging settings
-│
-├── src/                     # Source code
-│   ├── llm/                # LLM clients
-│   │   ├── base.py         # Base LLM client
-│   │   ├── claude_client.py # Anthropic Claude client
-│   │   ├── gpt_client.py   # OpenAI GPT client
-│   │   └── utils.py        # Shared utilities
-│   │
-│   ├── prompt_engineering/ # Prompt engineering tools
-│   │   ├── templates.py    # Template management
-│   │   ├── few_shot.py    # Few-shot prompt utilities
-│   │   └── chain.py       # Prompt chaining logic
-│   │
-│   ├── utils/             # Utility functions
-│   │   ├── rate_limiter.py # API rate limiting
-│   │   ├── token_counter.py # Token counting
-│   │   ├── cache.py       # Response caching
-│   │   └── logger.py      # Logging utilities
-│   │
-│   └── handlers/          # Error handling
-│       └── error_handler.py
-│
-├── data/                   # Data directory
-│   ├── cache/             # Cache storage
-│   ├── prompts/           # Prompt storage
-│   ├── outputs/           # Output storage
-│   └── embeddings/        # Embedding storage
-│
-├── examples/              # Example implementations
-│   ├── basic_completion.py
-│   ├── chat_session.py
-│   └── chain_prompts.py
-│
-└── notebooks/            # Jupyter notebooks
-    ├── prompt_testing.ipynb
-    ├── response_analysis.ipynb
-    └── model_experimentation.ipynb
-```
-
-## 🚀 Getting Started
-
-1. Clone the repository:
-```bash
-git clone https://github.com/yourusername/generative_ai_project.git
-cd generative_ai_project
-```
-
-2. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
-
-3. Configure your environment:
-   - Copy `config/model_config.yaml.example` to `config/model_config.yaml`
-   - Add your API keys and configurations
-
-4. Review the examples in `examples/` directory
-
-5. Start with the notebooks in `notebooks/` for experimentation
-
-## 📘 Documentation
-
-### Configuration
-
-- `model_config.yaml`: Configure API keys and model parameters
-- `prompt_templates.yaml`: Define reusable prompt templates
-- `logging_config.yaml`: Configure logging behavior
-
-### Key Components
-
-1. **LLM Clients** (`src/llm/`)
-   - Base client with common functionality
-   - Specific implementations for different providers
-   - Utility functions for token counting and rate limiting
-
-2. **Prompt Engineering** (`src/prompt_engineering/`)
-   - Template management system
-   - Few-shot prompt utilities
-   - Prompt chaining capabilities
-
-3. **Utilities** (`src/utils/`)
-   - Rate limiting for API calls
-   - Token counting
-   - Response caching
-   - Logging
-
-## 🛠️ Development
-
-### Best Practices
-
-1. Keep configuration in YAML files
-2. Implement proper error handling
-3. Use rate limiting for APIs
-4. Maintain separation between model clients
-5. Cache results when appropriate
-6. Document your code
-7. Use notebooks for experimentation
-
-### Tips
-
-- Follow modular design principles
-- Write tests for new components
-- Use proper version control
-- Keep documentation updated
-- Monitor API usage and limits
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 👤 Author
-
-- **Brij Kishore Pandey**
-
-## 📧 Contact
-
-For any queries, reach out to:
-- GitHub: [@honestsoul](https://github.com/honestsoul)
-- Email: brij.pydata@gmail.com
+Fork this repository when starting a new project. It gives you a working foundation with
+LangGraph orchestration, multi-provider LLM support, Langfuse observability, and
+all tooling (pytest, mypy, ruff, pre-commit) pre-configured.
 
 ---
-⭐ If you find this template useful, please consider giving it a star!
+
+## Quick start
+
+```bash
+# 1. Clone / fork
+git clone <repo-url> my-project && cd my-project
+
+# 2. Install dependencies (requires uv — https://docs.astral.sh/uv/)
+make install
+
+# 3. Create your .env from the example
+cp .env.example .env
+# Then fill in at least one LLM provider key (e.g. OPENAI_API_KEY)
+
+# 4. Run the test suite (works without API keys — uses a fake LLM)
+make test
+
+# 5. Start the API
+make run-api
+
+# 6. Try the hello-world endpoint
+curl -s http://127.0.0.1:8000/run \
+  -H "Content-Type: application/json" \
+  -d '{"message": "What is 2+2?", "use_llm": true}' | python -m json.tool
+```
+
+---
+
+## Architecture
+
+```
+HTTP request ─► FastAPI ─► LangGraph pipeline ─► nodes ─► response
+                                │
+                                ├── example_node   (preprocessing, always runs)
+                                ├── router_node    (conditional: LLM or skip)
+                                └── llm_node       (calls LLM via provider router)
+```
+
+### How the pipeline works
+
+1. **`POST /run`** receives a `RunRequest` (message + use_llm flag)
+2. **`run_pipeline()`** invokes the LangGraph graph with the input
+3. **`example_node`** runs first — marks the state as `processed = True`
+4. **`router_node`** checks `use_llm`: routes to `llm_node` or directly to END
+5. **`llm_node`** fetches a system prompt from the registry, builds a message thread
+   with the user's message, calls the LLM through the provider router, and stores
+   the response in `state["result"]`
+
+### LLM provider router
+
+The `LLMRouter` decouples your application code from specific providers. You configure
+abstract model names (e.g. `"response"`, `"decision"`) that map to concrete models
+and providers:
+
+```
+call_llm_chat(messages, model="response")
+       │
+       ▼
+   LLMRouter
+       │ resolve model: "response" → "gpt-4.1-mini"
+       │ resolve provider: → "openai"
+       ▼
+   OpenAIChatClient.chat_completion()
+```
+
+Supported providers out of the box:
+- **OpenAI** — `OPENAI_API_KEY`
+- **Azure OpenAI** — `AZURE_OPENAI_ENDPOINT` + `AZURE_OPENAI_API_KEY` + `AZURE_OPENAI_API_VERSION`
+- **Anthropic** — `ANTHROPIC_API_KEY`
+- **Google Gemini** — `GEMINI_API_KEY` (or Vertex AI via `GOOGLE_GENAI_USE_VERTEXAI=true`)
+
+Only providers with configured credentials are loaded. The router picks from whatever
+is available.
+
+### Observability with Langfuse
+
+Tracing is opt-in. When `LANGFUSE_ENABLED=true` and Langfuse credentials are set,
+every LLM call and pipeline node is traced automatically. When disabled, a no-op
+implementation is used — zero overhead, no code changes needed.
+
+### Prompt management
+
+`prompts/registry.py` follows an external-first pattern:
+1. Try fetching from an external registry (Langfuse prompt management, API, etc.)
+2. Fall back to local prompts defined in `_FALLBACK_PROMPTS`
+
+For new projects, start with the fallback dict and plug in the registry when ready.
+
+---
+
+## Project structure
+
+```
+src/genai_template/
+├── api/                    # FastAPI app, routes, and request/response schemas
+│   ├── main.py             # App entrypoint with lifespan (configures LLM router)
+│   ├── routes/             # Route handlers (/health, /run)
+│   └── schemas/            # Pydantic models for requests and responses
+├── orchestration/          # LangGraph pipeline
+│   ├── state.py            # PipelineState TypedDict — the graph's shared state
+│   ├── graph.py            # Graph builder (nodes, edges, conditional routing)
+│   ├── runtime.py          # run_pipeline() — single entry point to invoke the graph
+│   └── nodes/              # Individual graph nodes (example, router, llm)
+├── llm/                    # Provider-agnostic LLM layer
+│   ├── base.py             # ChatCompletionClient protocol and LLMResponse type
+│   ├── call.py             # call_llm_chat() with retry, tracing, and model resolution
+│   ├── router.py           # LLMRouter — maps abstract models to providers
+│   ├── factory.py          # Builds clients from env vars, creates the router
+│   ├── message_thread.py   # ChatMessageThread builder and message normalization
+│   └── providers/          # Per-provider implementations (openai, anthropic, gemini, azure)
+├── prompts/                # Prompt registry with external-first + local fallback
+├── observability/          # Langfuse integration with NoOp fallback
+│   └── eval/               # Simple evaluation runner for dataset-based scoring
+├── core/                   # Shared context (trace_id ContextVar)
+├── domain/                 # Domain models (extend per project)
+├── repositories/           # Persistence abstractions (extend per project)
+└── utils/                  # Shared utilities (extend per project)
+
+tests/
+├── conftest.py             # Shared setup: fake LLM client, Langfuse disabled
+├── unit/                   # Fast, deterministic node-level tests
+├── integration/            # Full graph + API endpoint tests
+└── eval/                   # Quality scoring against datasets
+```
+
+---
+
+## Environment variables
+
+Copy `.env.example` to `.env` and configure:
+
+| Variable | Required | Description |
+|---|---|---|
+| `DEFAULT_MODEL` | No | Default model name (default: `gpt-4.1-mini`) |
+| `DEFAULT_PROVIDER` | No | Default provider (default: `openai`) |
+| `OPENAI_API_KEY` | At least one provider | OpenAI API key |
+| `ANTHROPIC_API_KEY` | At least one provider | Anthropic API key |
+| `GEMINI_API_KEY` | At least one provider | Google Gemini API key |
+| `AZURE_OPENAI_*` | At least one provider | Azure OpenAI config |
+| `LANGFUSE_ENABLED` | No | Enable Langfuse tracing (default: `false`) |
+| `LANGFUSE_PUBLIC_KEY` | If Langfuse enabled | Langfuse public key |
+| `LANGFUSE_SECRET_KEY` | If Langfuse enabled | Langfuse secret key |
+| `LANGFUSE_HOST` | No | Langfuse host (default: `https://cloud.langfuse.com`) |
+
+---
+
+## Developer workflow
+
+### Make targets
+
+```bash
+make install      # Install all dependencies with uv
+make lint         # Run ruff check + format
+make typecheck    # Run mypy in strict mode
+make test         # Run full test suite
+make eval         # Run evaluation tests only
+make all          # lint + typecheck + test
+make run-api      # Start uvicorn with hot reload
+```
+
+### Pre-commit hooks
+
+```bash
+uv run pre-commit install   # Install hooks (one-time)
+```
+
+Every commit runs: **ruff** (lint + format) → **mypy** (type check) → **pytest** (tests).
+
+### Docker
+
+```bash
+docker compose up --build
+```
+
+The API will be available at `http://localhost:8000`.
+
+---
+
+## Testing strategy
+
+Tests are split into three categories, all runnable without real API keys:
+
+- **`tests/unit/`** — Fast, deterministic tests for individual nodes and utilities
+- **`tests/integration/`** — End-to-end graph execution and API endpoint tests
+- **`tests/eval/`** — Dataset-based quality scoring for pipeline outputs
+
+The test suite uses a `FakeChatClient` (defined in `conftest.py`) that returns
+deterministic responses. No API keys or network access required.
+
+---
+
+## Adapting for a new project
+
+After forking:
+
+1. **Rename** the project in `pyproject.toml` and the `src/genai_template/` package
+2. **Define your pipeline state** — edit `orchestration/state.py` with your domain fields
+3. **Add nodes** — create new nodes in `orchestration/nodes/` for your business logic
+4. **Wire the graph** — update `orchestration/graph.py` with your node topology
+5. **Set up prompts** — add entries to `_FALLBACK_PROMPTS` in `prompts/registry.py`
+   (or integrate with Langfuse prompt management)
+6. **Add domain models** — define your data structures in `domain/`
+7. **Add persistence** — implement repository interfaces in `repositories/`
+8. **Expand tests** — add cases to each test category as your pipeline grows
+9. **Configure providers** — fill in `.env` with the API keys you need
+
+---
+
+## Design principles
+
+1. **LangGraph is the orchestration engine** — Control flow lives in the graph. Business
+   logic lives in nodes. Don't mix them.
+2. **Provider-agnostic LLM calls** — Application code uses abstract model names.
+   Switching providers is a config change, not a code change.
+3. **Prompts are external-first** — Start with local fallbacks, graduate to a managed
+   registry (Langfuse, etc.) when ready.
+4. **Observability is opt-in but built-in** — Tracing never blocks local development.
+   Enable it when you need it.
+5. **Typed state** — `PipelineState` is a TypedDict. Add fields deliberately.
+6. **Tests run without credentials** — The fake LLM client ensures CI works everywhere.
