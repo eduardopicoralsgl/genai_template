@@ -1,0 +1,15 @@
+name: "health endpoint returns ok"
+description: "GET /health should return 200 with status ok"
+tags: [integration, api]
+
+execution:
+  mode: api
+  method: GET
+  path: "/health"
+
+assertions:
+  fields:
+    - path: status_code
+      expected: 200
+    - path: body.status
+      expected: "ok"

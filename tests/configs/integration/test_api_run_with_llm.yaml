@@ -1,0 +1,21 @@
+name: "POST /run with LLM returns result"
+description: "API run endpoint with use_llm=true calls LLM and returns result"
+tags: [integration, api, llm]
+
+execution:
+  mode: api
+  method: POST
+  path: "/run"
+
+initial_state:
+  message: "hello"
+  use_llm: true
+
+assertions:
+  fields:
+    - path: status_code
+      expected: 200
+    - path: body.processed
+      expected: true
+    - path: body.result
+      not_empty: true

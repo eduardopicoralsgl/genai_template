@@ -1,0 +1,26 @@
+name: "pipeline calls LLM and returns result"
+description: "Full graph execution where the LLM node is invoked with mocked response"
+tags: [integration, graph, llm]
+
+execution:
+  mode: full_graph
+
+initial_state:
+  input:
+    message: "what is AI?"
+    use_llm: true
+
+mocks:
+  llm:
+    default: "AI is the simulation of human intelligence by machines."
+    by_purpose:
+      llm: "AI is the simulation of human intelligence by machines."
+
+assertions:
+  fields:
+    - path: processed
+      expected: true
+    - path: result
+      not_empty: true
+    - path: result
+      contains: "intelligence"

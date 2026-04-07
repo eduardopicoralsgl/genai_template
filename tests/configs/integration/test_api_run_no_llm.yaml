@@ -1,0 +1,19 @@
+name: "POST /run without LLM returns processed"
+description: "API run endpoint with use_llm=false skips LLM and returns processed"
+tags: [integration, api]
+
+execution:
+  mode: api
+  method: POST
+  path: "/run"
+
+initial_state:
+  message: "hello"
+  use_llm: false
+
+assertions:
+  fields:
+    - path: status_code
+      expected: 200
+    - path: body.processed
+      expected: true

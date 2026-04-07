@@ -1,0 +1,16 @@
+name: "example_node marks state as processed"
+description: "Verify the example preprocessing node sets processed=True"
+tags: [unit, process]
+
+execution:
+  mode: single_node
+  node: "genai_template.orchestration.nodes.example_node:example_node"
+
+initial_state:
+  input:
+    message: "hello"
+
+assertions:
+  fields:
+    - path: processed
+      expected: true

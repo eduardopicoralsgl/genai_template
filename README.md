@@ -120,16 +120,18 @@ src/genai_template/
 ├── prompts/                # Prompt registry with external-first + local fallback
 ├── observability/          # Langfuse integration with NoOp fallback
 │   └── eval/               # Simple evaluation runner for dataset-based scoring
-├── core/                   # Shared context (trace_id ContextVar)
+├── core/                   # Pydantic Settings, structured logging, context
 ├── domain/                 # Domain models (extend per project)
 ├── repositories/           # Persistence abstractions (extend per project)
 └── utils/                  # Shared utilities (extend per project)
 
 tests/
 ├── conftest.py             # Shared setup: fake LLM client, Langfuse disabled
-├── unit/                   # Fast, deterministic node-level tests
-├── integration/            # Full graph + API endpoint tests
-└── eval/                   # Quality scoring against datasets
+├── framework/              # YAML test framework (config loader, executor, assertions, mocking)
+├── configs/                # YAML test declarations (unit/, integration/, eval/)
+├── test_yaml_unit.py       # Parametrized runner for unit YAML tests
+├── test_yaml_integration.py # Parametrized runner for integration YAML tests
+└── test_yaml_eval.py       # Parametrized runner for eval YAML tests
 ```
 
 ---
@@ -187,11 +189,15 @@ The API will be available at `http://localhost:8000`.
 
 ## Testing strategy
 
-Tests are split into three categories, all runnable without real API keys:
+Tests are declared as **YAML files** in `tests/configs/` and run via pytest parametrize:
 
-- **`tests/unit/`** — Fast, deterministic tests for individual nodes and utilities
-- **`tests/integration/`** — End-to-end graph execution and API endpoint tests
-- **`tests/eval/`** — Dataset-based quality scoring for pipeline outputs
+- **`configs/unit/`** — Single-node tests (`execution.mode: single_node`)
+- **`configs/integration/`** — Full graph + API endpoint tests (`mode: full_graph | api`)
+- **`configs/eval/`** — Dataset-based quality scoring (`dataset` + `scoring`)
+
+To add a new test, drop a `.yaml` file in the right directory — no Python code needed.
+The YAML schema supports field assertions (exact match, contains, regex, length checks),
+LLM mocking (by purpose/origin), and service mocking.
 
 The test suite uses a `FakeChatClient` (defined in `conftest.py`) that returns
 deterministic responses. No API keys or network access required.

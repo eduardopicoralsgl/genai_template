@@ -1,0 +1,21 @@
+name: "basic pipeline evaluation"
+description: "Score pipeline correctness on a small dataset"
+tags: [eval]
+
+execution:
+  mode: full_graph
+
+dataset:
+  - input:
+      message: "hello"
+      use_llm: false
+    expected:
+      processed: true
+  - input:
+      message: "what is AI?"
+      use_llm: true
+    expected:
+      processed: true
+
+scoring:
+  min_score: 1.0

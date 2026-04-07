@@ -1,0 +1,16 @@
+name: "router routes to end when use_llm is false"
+description: "router_node should return 'end' when input.use_llm is false"
+tags: [unit, router]
+
+execution:
+  mode: single_node
+  node: "genai_template.orchestration.nodes.router:router_node"
+
+initial_state:
+  input:
+    use_llm: false
+
+assertions:
+  fields:
+    - path: __return__
+      expected: "end"

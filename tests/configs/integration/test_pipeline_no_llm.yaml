@@ -1,0 +1,16 @@
+name: "pipeline skips LLM when use_llm is false"
+description: "Full graph execution where router skips the LLM node"
+tags: [integration, graph]
+
+execution:
+  mode: full_graph
+
+initial_state:
+  input:
+    message: "hello"
+    use_llm: false
+
+assertions:
+  fields:
+    - path: processed
+      expected: true
